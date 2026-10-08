@@ -1,25 +1,18 @@
-# TODO: The maintainer of this repo has not yet edited this file
-
-**REPO OWNER**: Do you want Customer Service & Support (CSS) support for this product/project?
-
-- **No CSS support:** Fill out this template with information about how to file issues and get help.
-- **Yes CSS support:** Fill out an intake form at [aka.ms/onboardsupport](https://aka.ms/onboardsupport). CSS will work with/help you to determine next steps.
-- **Not sure?** Fill out an intake as though the answer were "Yes". CSS will help you decide.
-
-*Then remove this first heading from this SUPPORT.MD file before publishing your repo.*
-
 # Support
 
-## How to file issues and get help  
+This project is currently provided as a non-production reference implementation
+for evaluation and integration development.
 
-This project uses GitHub Issues to track bugs and feature requests. Please search the existing 
-issues before filing new issues to avoid duplicates.  For new issues, file your bug or 
-feature request as a new Issue.
+Use the repository's GitHub issue tracker for bugs, questions, and feedback.
+Include a minimal reproducer, compiler and build configuration, SDK version,
+and synthetic inputs. Do not attach device credentials, private keys, real
+attestation captures, confidential information, or proprietary data.
 
-For help and questions about using this project, please **REPO MAINTAINER: INSERT INSTRUCTIONS HERE 
-FOR HOW TO ENGAGE REPO OWNERS OR COMMUNITY FOR HELP. COULD BE A STACK OVERFLOW TAG OR OTHER
-CHANNEL. WHERE WILL YOU HELP PEOPLE?**.
+Community support is provided through GitHub issues. No service-level agreement
+or commercial support commitment is provided.
 
-## Microsoft Support Policy  
+Do not report vulnerabilities in GitHub issues. Follow
+[SECURITY.md](SECURITY.md) for Microsoft's security-reporting process.
 
-Support for this **PROJECT or PRODUCT** is limited to the resources listed above.
+Applicable standards work and third-party dependency status are described in
+the README and release notes.
