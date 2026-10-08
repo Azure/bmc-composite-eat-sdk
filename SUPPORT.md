@@ -1,25 +1,19 @@
-# TODO: The maintainer of this repo has not yet edited this file
-
-**REPO OWNER**: Do you want Customer Service & Support (CSS) support for this product/project?
-
-- **No CSS support:** Fill out this template with information about how to file issues and get help.
-- **Yes CSS support:** Fill out an intake form at [aka.ms/onboardsupport](https://aka.ms/onboardsupport). CSS will work with/help you to determine next steps.
-- **Not sure?** Fill out an intake as though the answer were "Yes". CSS will help you decide.
-
-*Then remove this first heading from this SUPPORT.MD file before publishing your repo.*
-
 # Support
 
-## How to file issues and get help  
+This is a non-production reference implementation supplied for internal
+stakeholder review. It is not an Azure hosted service or a supported Microsoft
+production product, and it carries no production SLA or CSS support commitment.
 
-This project uses GitHub Issues to track bugs and feature requests. Please search the existing 
-issues before filing new issues to avoid duplicates.  For new issues, file your bug or 
-feature request as a new Issue.
+Authorized repository collaborators can use the private repository's issue
+tracker for bugs, questions, and review feedback, or contact the repository
+maintainers through the existing stakeholder review channel. Include a minimal
+reproducer, compiler/build configuration, SDK version, and synthetic inputs.
+Do not attach device credentials, private keys, real attestation captures, or
+information outside the repository's authorized disclosure scope.
 
-For help and questions about using this project, please **REPO MAINTAINER: INSERT INSTRUCTIONS HERE 
-FOR HOW TO ENGAGE REPO OWNERS OR COMMUNITY FOR HELP. COULD BE A STACK OVERFLOW TAG OR OTHER
-CHANNEL. WHERE WILL YOU HELP PEOPLE?**.
+Do not report vulnerabilities in issues. Follow [SECURITY.md](SECURITY.md) for
+Microsoft's security-reporting process.
 
-## Microsoft Support Policy  
-
-Support for this **PROJECT or PRODUCT** is limited to the resources listed above.
+Any public community-support policy will be confirmed separately before a
+public release. Applicable draft standards and third-party dependency status
+are described in the README and release notes.

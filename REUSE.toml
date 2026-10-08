@@ -1,0 +1,37 @@
+version = 1
+
+[[annotations]]
+path = [
+    ".clang-format",
+    ".gitattributes",
+    ".github/**",
+    ".gitignore",
+    "CMakeLists.txt",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "LICENSING.md",
+    "README.md",
+    "REUSE.toml",
+    "SECURITY.md",
+    "SUPPORT.md",
+    "THIRD_PARTY_NOTICES.md",
+    "cmake/**",
+    "docs/**",
+    "examples/**",
+    "include/**",
+    "requirements-test.txt",
+    "src/**",
+    "tests/**",
+    "tools/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "Microsoft Corporation"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = [
+    "third_party/qcbor/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "NOASSERTION"
+SPDX-License-Identifier = "BSD-3-Clause"

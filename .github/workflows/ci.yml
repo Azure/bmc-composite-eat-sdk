@@ -1,0 +1,205 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+name: ci
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (${{ matrix.compiler.cc }}, ${{ matrix.build_type }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release, RelWithDebInfo]
+        compiler:
+          - cc: gcc
+            cxx: g++
+          - cc: clang
+            cxx: clang++
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check out pinned spdmd adapter contract
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: NVIDIA/spdm
+          ref: 5627b8844ab298477ee4d0ab744d24266e7c6b28
+          path: external/spdm
+          persist-credentials: false
+      - name: Check out pinned TCG Concise Evidence schema
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: TrustedComputingGroup/dice-coev
+          ref: 3e1b724f1154add5d5289df90ad8b2e0e9d5532a
+          path: external/dice-coev
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          sudo -n apt-get update
+          sudo -n apt-get install -y ninja-build libssl-dev clang-format ruby python3-venv
+          sudo -n gem install cddlc -v 0.4.5 --no-document
+          sudo -n gem install cddl -v 0.12.14 --no-document
+          python3 -m venv "$RUNNER_TEMP/test-venv"
+          "$RUNNER_TEMP/test-venv/bin/python" -m pip install -r requirements-test.txt
+      - name: Configure
+        env:
+          CC: ${{ matrix.compiler.cc }}
+          CXX: ${{ matrix.compiler.cxx }}
+          BUILD_TYPE: ${{ matrix.build_type }}
+        run: |
+          cmake -S . -B build -GNinja \
+            -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+            -DBMC_COMPOSITE_EAT_BUILD_TESTS=ON \
+            -DBMC_COMPOSITE_EAT_BUILD_EXAMPLES=ON \
+            -DPython3_EXECUTABLE="$RUNNER_TEMP/test-venv/bin/python" \
+            -DBMC_COMPOSITE_EAT_SPDMD_SOURCE_DIR="$GITHUB_WORKSPACE/external/spdm/spdmd" \
+            -DBMC_COMPOSITE_EAT_TCG_CDDL_SOURCE_DIR="$GITHUB_WORKSPACE/external/dice-coev" \
+            -DBMC_COMPOSITE_EAT_CDDLC="$(command -v cddlc)" \
+            -DBMC_COMPOSITE_EAT_CDDL="$(command -v cddl)"
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Format
+        if: matrix.compiler.cc == 'gcc' && matrix.build_type == 'Debug'
+        run: |
+          find . \( -path './build' -o -path './external' -o -path './third_party' \) \
+            -prune -o -type f \
+            \( -name '*.c' -o -name '*.h' -o -name '*.cpp' -o -name '*.hpp' \) -print0 \
+            | xargs -0 clang-format --dry-run --Werror
+
+  sanitizers:
+    name: ASan and UBSan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check out pinned spdmd adapter contract
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: NVIDIA/spdm
+          ref: 5627b8844ab298477ee4d0ab744d24266e7c6b28
+          path: external/spdm
+          persist-credentials: false
+      - name: Install dependencies
+        run: |
+          sudo -n apt-get update
+          sudo -n apt-get install -y ninja-build libssl-dev python3-venv
+          python3 -m venv "$RUNNER_TEMP/test-venv"
+          "$RUNNER_TEMP/test-venv/bin/python" -m pip install -r requirements-test.txt
+      - name: Configure
+        run: |
+          cmake -S . -B build-sanitize -GNinja \
+            -DBMC_COMPOSITE_EAT_BUILD_TESTS=ON \
+            -DBMC_COMPOSITE_EAT_BUILD_EXAMPLES=ON \
+            -DPython3_EXECUTABLE="$RUNNER_TEMP/test-venv/bin/python" \
+            -DBMC_COMPOSITE_EAT_SPDMD_SOURCE_DIR="$GITHUB_WORKSPACE/external/spdm/spdmd" \
+            -DCMAKE_C_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all' \
+            -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all' \
+            -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address,undefined'
+      - name: Build and test
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1:abort_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          cmake --build build-sanitize
+          ctest --test-dir build-sanitize --output-on-failure
+
+  library-only:
+    name: Default library and installed package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install build tools
+        run: |
+          sudo -n apt-get update
+          sudo -n apt-get install -y ninja-build
+      - name: Build and install default C library
+        run: |
+          cmake -S . -B build-default -GNinja \
+            -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/sdk-prefix"
+          cmake --build build-default
+          cmake --install build-default
+      - name: Verify installed package
+        run: |
+          cmake -S tests/install -B build-consumer -GNinja \
+            -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/sdk-prefix"
+          cmake --build build-consumer
+          ctest --test-dir build-consumer --output-on-failure
+
+  fuzz-smoke:
+    name: Seeded sanitizer fuzz smoke tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install fuzz build tools
+        run: |
+          sudo -n apt-get update
+          sudo -n apt-get install -y clang-18 libclang-rt-18-dev ninja-build
+      - name: Configure instrumented targets
+        run: |
+          cmake -S . -B build-fuzz -GNinja \
+            -DCMAKE_C_COMPILER=clang-18 \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DBMC_COMPOSITE_EAT_BUILD_FUZZERS=ON
+      - name: Build and run seeded smoke tests
+        env:
+          ASAN_OPTIONS: detect_leaks=1:halt_on_error=1:abort_on_error=1
+          UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1
+        run: |
+          cmake --build build-fuzz
+          ctest --test-dir build-fuzz --output-on-failure --no-tests=error
+
+  workflow-lint:
+    name: Workflow syntax and security
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install pinned workflow scanners
+        run: |
+          python3 -m venv "$RUNNER_TEMP/lint-venv"
+          "$RUNNER_TEMP/lint-venv/bin/python" -m pip install \
+            'zizmor==1.30.1' 'shellcheck-py==0.11.0.1'
+          curl --fail --silent --show-error --location --max-time 120 \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+            --output "$RUNNER_TEMP/actionlint.tar.gz"
+          printf '%s  %s\n' \
+            8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 \
+            "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check
+          tar --extract --gzip --file "$RUNNER_TEMP/actionlint.tar.gz" \
+            --directory "$RUNNER_TEMP" --no-same-owner actionlint
+      - name: Lint workflow syntax and shell
+        run: PATH="$RUNNER_TEMP/lint-venv/bin:$PATH" "$RUNNER_TEMP/actionlint" .github/workflows/*.yml
+      - name: Audit workflow security
+        run: |
+          "$RUNNER_TEMP/lint-venv/bin/zizmor" --offline --no-config --no-ignores \
+            --strict-collection --persona pedantic .github/workflows .github/dependabot.yml
